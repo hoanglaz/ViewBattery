@@ -8,30 +8,32 @@ public class BatteryService {
     private init() {}
 
     public func fetchBatteryInfo() -> BatteryInfo {
-        var info = BatteryInfo()
+        autoreleasepool {
+            var info = BatteryInfo()
 
-        // 1. Đọc thông tin từ AppleSmartBattery qua IORegistry
-        var iterator: io_iterator_t = 0
-        let matching = IOServiceMatching("AppleSmartBattery")
-        let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
+            // 1. Đọc thông tin từ AppleSmartBattery qua IORegistry
+            var iterator: io_iterator_t = 0
+            let matching = IOServiceMatching("AppleSmartBattery")
+            let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
 
-        if result == kIOReturnSuccess {
-            let service = IOIteratorNext(iterator)
-            if service != 0 {
-                var props: Unmanaged<CFMutableDictionary>?
-                if IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == kIOReturnSuccess,
-                   let dict = props?.takeRetainedValue() as? [String: Any] {
-                    parseBatteryDictionary(dict, into: &info)
+            if result == kIOReturnSuccess {
+                let service = IOIteratorNext(iterator)
+                if service != 0 {
+                    var props: Unmanaged<CFMutableDictionary>?
+                    if IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == kIOReturnSuccess,
+                       let dict = props?.takeRetainedValue() as? [String: Any] {
+                        parseBatteryDictionary(dict, into: &info)
+                    }
+                    IOObjectRelease(service)
                 }
-                IOObjectRelease(service)
+                IOObjectRelease(iterator)
             }
-            IOObjectRelease(iterator)
+
+            // 2. Bổ sung thông tin từ IOPS (IOPowerSources)
+            fillPowerSourceDetails(into: &info)
+
+            return info
         }
-
-        // 2. Bổ sung thông tin từ IOPS (IOPowerSources)
-        fillPowerSourceDetails(into: &info)
-
-        return info
     }
 
     private func parseBatteryDictionary(_ dict: [String: Any], into info: inout BatteryInfo) {

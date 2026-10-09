@@ -2,26 +2,19 @@ import Cocoa
 import SwiftUI
 
 @MainActor
-public class AppDelegate: NSObject, NSApplicationDelegate {
+public class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    private var popover: NSPopover?
     private var viewModel: BatteryViewModel!
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        // Ẩn icon trên Dock, chạy như một menu bar accessory app thuần tuý
+        // 1. Ẩn icon trên Dock, chạy như một menu bar accessory app thuần tuý
         NSApp.setActivationPolicy(.accessory)
 
-        // Khởi tạo ViewModel
+        // 2. Khởi tạo ViewModel (nhẹ, quản lý timer và IOKit)
         viewModel = BatteryViewModel()
 
-        // Khởi tạo Popover SwiftUI
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 330, height: 460)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: PopoverView(viewModel: viewModel))
-        self.popover = popover
-
-        // Khởi tạo NSStatusItem trên thanh Menu Bar
+        // 3. Khởi tạo NSStatusItem trên thanh Menu Bar
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
@@ -38,6 +31,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         // Cập nhật lần đầu
         let text = viewModel.batteryInfo.menuBarText(mode: viewModel.displayMode, showPercentage: viewModel.showPercentage)
         updateStatusButton(text: text, iconName: viewModel.batteryInfo.statusIconName)
+
+        // LƯU Ý TỐI ƯU RAM: Popover KHÔNG khởi tạo ở đây!
+        // Sẽ được lazy-load khi người dùng click vào Menu Bar lần đầu tiên.
     }
 
     private func updateStatusButton(text: String, iconName: String) {
@@ -49,7 +45,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
         if viewModel.showIcon {
             let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
-            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "Trạng thái sạc")?.withSymbolConfiguration(config)
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "Charging status")?.withSymbolConfiguration(config)
             button.imagePosition = .imageLeading
             button.title = " \(text)"
         } else {
@@ -62,7 +58,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         guard let event = NSApp.currentEvent else { return }
 
         if event.type == .rightMouseUp {
-            // Click chuột phải: Hiện menu nhanh
+            // Click chuột phải: Hiện menu ngữ cảnh nhanh
             showContextMenu()
         } else {
             // Click chuột trái: Mở / Đóng Popover SwiftUI
@@ -70,29 +66,56 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func getOrCreatePopover() -> NSPopover {
+        if let existing = popover {
+            return existing
+        }
+
+        let newPopover = NSPopover()
+        newPopover.contentSize = NSSize(width: 330, height: 490)
+        newPopover.behavior = .transient
+        newPopover.delegate = self
+        newPopover.contentViewController = NSHostingController(rootView: PopoverView(viewModel: viewModel))
+        self.popover = newPopover
+        return newPopover
+    }
+
     private func togglePopover() {
         guard let button = statusItem.button else { return }
+        let currentPopover = getOrCreatePopover()
 
-        if popover.isShown {
-            popover.performClose(nil)
+        if currentPopover.isShown {
+            currentPopover.performClose(nil)
         } else {
             // Làm mới dữ liệu trước khi hiện
             viewModel.refresh()
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            currentPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            currentPopover.contentViewController?.view.window?.makeKey()
         }
+    }
+
+    // MARK: - NSPopoverDelegate
+    public func popoverWillShow(_ notification: Notification) {
+        viewModel.setPopoverVisible(true)
+    }
+
+    public func popoverDidClose(_ notification: Notification) {
+        viewModel.setPopoverVisible(false)
     }
 
     private func showContextMenu() {
         let menu = NSMenu()
+        let lang = viewModel.language
 
-        let refreshItem = NSMenuItem(title: "Làm mới thông số", action: #selector(refreshClicked), keyEquivalent: "r")
+        let refreshTitle = LocalizedString.tr("menu.refresh", lang: lang)
+        let refreshItem = NSMenuItem(title: refreshTitle, action: #selector(refreshClicked), keyEquivalent: "r")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Thoát ViewBattery", action: #selector(quitClicked), keyEquivalent: "q")
+        let quitTitle = LocalizedString.tr("menu.quit", lang: lang)
+        let quitItem = NSMenuItem(title: quitTitle, action: #selector(quitClicked), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 

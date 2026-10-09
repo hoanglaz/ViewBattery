@@ -11,6 +11,14 @@ public struct PopoverView: View {
         viewModel.batteryInfo
     }
 
+    private var lang: AppLanguage {
+        viewModel.language
+    }
+
+    private func t(_ key: String) -> String {
+        LocalizedString.tr(key, lang: lang)
+    }
+
     public var body: some View {
         VStack(spacing: 12) {
             // MARK: - Header
@@ -28,7 +36,7 @@ public struct PopoverView: View {
             Divider()
                 .opacity(0.6)
 
-            // MARK: - Menu Bar Customization
+            // MARK: - Menu Bar Customization & Language
             settingsSection
 
             Divider()
@@ -72,7 +80,7 @@ public struct PopoverView: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
-            .help("Làm mới thông số")
+            .help(t("menu.refresh"))
         }
     }
 
@@ -101,9 +109,9 @@ public struct PopoverView: View {
 
     private var badgeText: String {
         if info.isPluggedIn {
-            return info.isCharging ? "Đang sạc" : "Nguồn AC"
+            return info.isCharging ? t("status.charging") : t("status.ac_power")
         } else {
-            return "Đang dùng pin"
+            return t("status.on_battery")
         }
     }
 
@@ -141,7 +149,7 @@ public struct PopoverView: View {
                     }
 
                     if let health = info.healthPercentage {
-                        Text("Sức khoẻ: \(Int(health))%")
+                        Text(String(format: t("hero.health"), Int(health)))
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
@@ -165,14 +173,14 @@ public struct PopoverView: View {
     private var heroLabel: String {
         if info.isPluggedIn {
             if info.systemPowerInWatts != nil {
-                return "Công suất máy đang nhận"
+                return t("hero.power_in")
             } else if info.adapterWatts != nil {
-                return "Công suất củ sạc kết nối"
+                return t("hero.adapter_power")
             } else {
-                return "Công suất nạp vào pin"
+                return t("hero.battery_charge")
             }
         } else {
-            return "Công suất pin đang xả"
+            return t("hero.battery_discharge")
         }
     }
 
@@ -197,7 +205,7 @@ public struct PopoverView: View {
             MetricCard(
                 icon: "powerplug.fill",
                 iconColor: .blue,
-                title: "Củ sạc (Adapter)",
+                title: t("card.adapter_title"),
                 value: adapterValueString,
                 subtitle: adapterSubtitleString
             )
@@ -206,7 +214,7 @@ public struct PopoverView: View {
             MetricCard(
                 icon: "bolt.ring.closed",
                 iconColor: info.isCharging ? .green : .orange,
-                title: info.isCharging ? "Nạp vào pin" : "Dòng pin",
+                title: info.isCharging ? t("card.battery_flow_in") : t("card.battery_flow_out"),
                 value: batteryFlowString,
                 subtitle: String(format: "%.2f V • %.0f mA", info.batteryVoltage, info.batteryAmperage * 1000)
             )
@@ -215,16 +223,16 @@ public struct PopoverView: View {
             MetricCard(
                 icon: "thermometer.medium",
                 iconColor: temperatureColor,
-                title: "Nhiệt độ pin",
+                title: t("card.temp_title"),
                 value: temperatureString,
-                subtitle: info.condition ?? "Tình trạng tốt"
+                subtitle: info.condition ?? t("card.condition_good")
             )
 
             // Card 4: Chu kỳ sạc (Cycles)
             MetricCard(
                 icon: "arrow.triangle.2.circlepath",
                 iconColor: .purple,
-                title: "Chu kỳ sạc",
+                title: t("card.cycle_title"),
                 value: cycleCountString,
                 subtitle: designCapacitySubtitle
             )
@@ -235,9 +243,9 @@ public struct PopoverView: View {
         if let watts = info.adapterWatts {
             return "\(Int(watts)) W"
         } else if info.isPluggedIn {
-            return "Đã kết nối"
+            return t("card.adapter_connected")
         } else {
-            return "Không cắm"
+            return t("card.adapter_disconnected")
         }
     }
 
@@ -247,7 +255,7 @@ public struct PopoverView: View {
         } else if let desc = info.adapterDescription {
             return desc
         } else {
-            return "Chạy bằng pin"
+            return t("card.on_battery_desc")
         }
     }
 
@@ -257,7 +265,7 @@ public struct PopoverView: View {
             if info.isCharging {
                 return String(format: "+%.1f W", watts)
             } else {
-                return "0.0 W (Đầy/Ngưng)"
+                return t("card.battery_full_idle")
             }
         } else {
             return String(format: "-%.1f W", watts)
@@ -281,7 +289,7 @@ public struct PopoverView: View {
 
     private var cycleCountString: String {
         if let cycles = info.cycleCount {
-            return "\(cycles) chu kỳ"
+            return String(format: t("card.cycle_count"), cycles)
         } else {
             return "--"
         }
@@ -289,36 +297,54 @@ public struct PopoverView: View {
 
     private var designCapacitySubtitle: String {
         if let design = info.designCapacity {
-            return "\(design) mAh thiết kế"
+            return String(format: t("card.design_capacity"), design)
         } else {
-            return "Dung lượng gốc"
+            return t("card.original_capacity")
         }
     }
 
-    // MARK: - 4. Settings Section
+    // MARK: - 4. Settings Section (Language & Menu Bar)
     private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Hiển thị trên Menu Bar")
+        VStack(alignment: .leading, spacing: 8) {
+            // Language selector toggle
+            HStack {
+                Text(t("settings.language"))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Picker("Language", selection: $viewModel.language) {
+                    Text("English").tag(AppLanguage.en)
+                    Text("Tiếng Việt").tag(AppLanguage.vi)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 150)
+            }
+
+            // Menu Bar Display Mode
+            Text(t("settings.menubar_title"))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
 
             Picker("Chế độ hiển thị", selection: $viewModel.displayMode) {
-                Text("Thực tế").tag(MenuBarDisplayMode.livePower)
-                Text("Củ sạc").tag(MenuBarDisplayMode.adapterPower)
-                Text("Cả hai").tag(MenuBarDisplayMode.combined)
-                Text("Dòng pin").tag(MenuBarDisplayMode.batteryFlow)
+                Text(t("settings.mode_live")).tag(MenuBarDisplayMode.livePower)
+                Text(t("settings.mode_adapter")).tag(MenuBarDisplayMode.adapterPower)
+                Text(t("settings.mode_combined")).tag(MenuBarDisplayMode.combined)
+                Text(t("settings.mode_flow")).tag(MenuBarDisplayMode.batteryFlow)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
 
             HStack {
-                Toggle("Hiện kèm phần trăm pin", isOn: $viewModel.showPercentage)
+                Toggle(t("settings.show_percentage"), isOn: $viewModel.showPercentage)
                     .font(.system(size: 11))
                     .toggleStyle(.checkbox)
 
                 Spacer()
 
-                Toggle("Hiện icon ⚡️", isOn: $viewModel.showIcon)
+                Toggle(t("settings.show_icon"), isOn: $viewModel.showIcon)
                     .font(.system(size: 11))
                     .toggleStyle(.checkbox)
             }
@@ -340,7 +366,7 @@ public struct PopoverView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "power")
                         .font(.system(size: 10, weight: .bold))
-                    Text("Thoát ViewBattery")
+                    Text(t("footer.quit"))
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundColor(.red.opacity(0.85))
@@ -351,13 +377,13 @@ public struct PopoverView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut("q", modifiers: .command)
-            .help("Thoát ứng dụng (⌘Q)")
+            .help(t("footer.quit_help"))
         }
     }
 
     private func timeString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
-        return "Cập nhật: " + formatter.string(from: date)
+        return String(format: t("footer.updated_at"), formatter.string(from: date))
     }
 }
