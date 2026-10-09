@@ -19,6 +19,13 @@ mkdir -p "$TEMP_DMG_DIR"
 cp -R "$PROJECT_DIR/$APP_NAME.app" "$TEMP_DMG_DIR/"
 ln -s /Applications "$TEMP_DMG_DIR/Applications"
 
+# Gán icon cho đĩa DMG nếu có
+if [ -f "$PROJECT_DIR/Resources/AppIcon.icns" ]; then
+    cp "$PROJECT_DIR/Resources/AppIcon.icns" "$TEMP_DMG_DIR/.VolumeIcon.icns"
+    SetFile -c icnC "$TEMP_DMG_DIR/.VolumeIcon.icns" 2>/dev/null || true
+    SetFile -a C "$TEMP_DMG_DIR" 2>/dev/null || true
+fi
+
 # 3. Đóng gói file .dmg nén chuẩn định dạng UDZO
 hdiutil create -volname "$APP_NAME" \
                -srcfolder "$TEMP_DMG_DIR" \

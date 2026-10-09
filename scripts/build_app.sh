@@ -21,6 +21,11 @@ mkdir -p "$RESOURCES_DIR"
 # Copy binary
 cp "$BUILD_DIR/$APP_NAME" "$MACOS_DIR/"
 
+# Copy AppIcon nếu có
+if [ -f "$PROJECT_DIR/Resources/AppIcon.icns" ]; then
+    cp "$PROJECT_DIR/Resources/AppIcon.icns" "$RESOURCES_DIR/"
+fi
+
 # Tạo Info.plist
 cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -31,6 +36,10 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>ViewBattery</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.hoangla.ViewBattery</string>
     <key>CFBundleInfoDictionaryVersion</key>

@@ -63,3 +63,4 @@ fastlane/test_output
 
 # Build artifacts
 ViewBattery.app/
+.DS_Store
