@@ -65,5 +65,9 @@ EOF
 # Cấp quyền thực thi
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# Ký số Ad-hoc để macOS nhận diện cấu trúc app hợp lệ
+echo "🔏 Đang ký số ứng dụng (Ad-hoc signature)..."
+codesign --force --deep --sign - "$APP_BUNDLE"
+
 echo "✅ Đã đóng gói thành công: $APP_BUNDLE"
 echo "👉 Bạn có thể kéo thả ViewBattery.app vào thư mục Applications để dùng hàng ngày."

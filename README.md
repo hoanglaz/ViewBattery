@@ -50,7 +50,14 @@
 Download **[ViewBattery.dmg](file:///Users/hoangla/Documents/Project/ViewBattery/ViewBattery.dmg)** from this repository:
 1. Open `ViewBattery.dmg`.
 2. Drag and drop **ViewBattery** into **Applications**.
-3. Open ViewBattery from Launchpad or Spotlight. The live power icon will appear on your Menu Bar!
+3. Open ViewBattery from Launchpad or Spotlight.
+
+> [!NOTE]
+> **If macOS shows *"ViewBattery is damaged and can't be opened"***:  
+> This is macOS Gatekeeper security for open-source apps downloaded from browsers. Run this single command in Terminal:
+> ```bash
+> xattr -cr /Applications/ViewBattery.app
+> ```
 
 #### Method 2: Build & Run from Source
 ```bash
@@ -109,6 +116,13 @@ Tải tệp **[ViewBattery.dmg](file:///Users/hoangla/Documents/Project/ViewBatt
 1. Mở file `ViewBattery.dmg`.
 2. Kéo thả biểu tượng **ViewBattery** vào thư mục **Applications**.
 3. Mở ứng dụng từ Launchpad hoặc Spotlight.
+
+> [!NOTE]
+> **Nếu gặp thông báo *"ViewBattery is damaged and can't be opened"***:  
+> Đây là cơ chế cách ly an ninh (Gatekeeper Quarantine) của macOS khi tải ứng dụng mã nguồn mở từ trình duyệt. Bạn chỉ cần mở Terminal và chạy lệnh sau là mở được ngay:
+> ```bash
+> xattr -cr /Applications/ViewBattery.app
+> ```
 
 #### Cách 2: Chạy trực tiếp từ mã nguồn (Development)
 ```bash
